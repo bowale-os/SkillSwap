@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Discuss Swap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 1rem;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+
+        .swap-boxes {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .swap-box {
+            flex: 1;
+            padding: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+
+        .swap-box h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .chat-box {
+            border-top: 1px solid #ddd;
+            padding-top: 1rem;
+        }
+
+        .messages {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fefefe;
+        }
+
+        .message {
+            margin-bottom: 0.8rem;
+        }
+
+        .message.you {
+            text-align: right;
+        }
+
+        .message p {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 16px;
+            max-width: 70%;
+        }
+
+        .message.you p {
+            background-color: #d1f5d3;
+        }
+
+        .message.them p {
+            background-color: #e4e4e4;
+        }
+
+        form {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            padding: 0.6rem 1.2rem;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="swap-boxes">
+        <div class="swap-box">
+            <h3>🎁 Their Offer</h3>
+            <p>{{ swap.offer_skill.name }}</p>
+        </div>
+        <div class="swap-box">
+            <h3>💡 What They Want</h3>
+            <p>{{ swap.desired_skill.name }}</p>
+        </div>
+    </div>
+
+    <div class="chat-box">
+        <h3>💬 Discussion</h3>
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {% if message.sender_id == current_user.id %}you{% else %}them{% endif %}">
+                    <p>{{ message.content }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form method="post">
+            {{ form.hidden_tag() }}
+            {{ form.content(size=80, placeholder="Type your message...") }}
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
