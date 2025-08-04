@@ -110,7 +110,7 @@ class Swap(Base):
     def __repr__(self):
         return f"<Swap offering skill {self.offered_skill.skill_name.name} for {self.desired_skill.skill_name.name}>"
 
-
+    
 class SwapRequest(Base):
     __tablename__ = 'swap_requests'
 

@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, url_for, session, redirect, flash, request
+from sqlalchemy import exists, select
 from forms import SignupForm, LoginForm, AddSkillForm, MakeSwapForm
 from models import db, User, Skill, Swap, SkillName, Category, SwapConversation, SwapMessage, SwapRequest
 from flask_migrate import Migrate
@@ -22,6 +23,9 @@ with app.app_context():
 
 @app.route('/')
 def home():
+    user_id = session.get('user_id', None)
+    if not user_id:
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -104,16 +108,46 @@ def dashboard():
         db.select(User).filter_by(id=user_id)
     ).scalar_one_or_none()
 
-    current_swap_requests = db.session.execute(
-        db.select(Swap).filter((Swap.is_satisfied==False) & (Swap.user_id != user_id))
+
+    sent_swap_requests = db.session.execute(
+        db.select(SwapRequest).filter_by(sender_id=user_id)
     ).scalars().all()
+
+    received_swap_requests = db.session.execute(
+        db.select(SwapRequest).filter_by(recipient_id=user_id)
+    ).scalars().all()
+
+    
+    # Subquery: Check if a SwapRequest exists from the current user for this Swap
+    subquery = (
+        select(SwapRequest.id)
+        .filter(
+            SwapRequest.swap_id == Swap.id,
+            SwapRequest.sender_id == user_id
+        )
+        .correlate(Swap)  # 👈 THIS is what tells SQLAlchemy to treat Swap.id as coming from the outer query
+    )
+
+    # Main query: Get swaps that the user hasn’t requested yet
+    unrequested_swaps = db.session.execute(
+        select(Swap).filter(
+            (Swap.user_id != user_id) &
+            (Swap.is_satisfied == False) &
+            (~exists(subquery))
+        )
+    ).scalars().all()
+
+
     
     return render_template('dashboard.html',
                            form=form, 
                            swap_form=swap_form, 
                            current_user = current_user,
                            skills=user_skills,
-                           swaps=current_swap_requests)
+                           swaps=unrequested_swaps,
+                           sent_swap_requests = sent_swap_requests,
+                           received_swap_requests = received_swap_requests
+                           )
 
 
 @app.route('/add-skill', methods=['POST'])
