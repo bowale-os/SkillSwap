@@ -78,6 +78,8 @@ def dashboard():
     user_id = session.get('user_id', None)
     if not user_id:
         return redirect(url_for('login'))
+    
+    #stuff for skill and swap forms
     form = AddSkillForm()
     swap_form = MakeSwapForm()
 
@@ -91,6 +93,8 @@ def dashboard():
 
     form.name.choices = [(skill_name.id, skill_name.name) for skill_name in skill_names]
     form.category.choices = [(category.id, category.name) for category in categories]
+
+    #stuff for skill display
 
     user_skills = db.session.execute(
             db.select(Skill).filter_by(user_id=user_id)
@@ -117,6 +121,8 @@ def dashboard():
         db.select(SwapRequest).filter_by(recipient_id=user_id)
     ).scalars().all()
 
+    # Get the skill_name_ids of the user's skills to make displayed swaps correct
+    user_skill_name_ids = [skill.skill_name_id for skill in user_skills if skill.skill_name_id]
     
     # Subquery: Check if a SwapRequest exists from the current user for this Swap
     subquery = (
@@ -128,12 +134,14 @@ def dashboard():
         .correlate(Swap)  # 👈 THIS is what tells SQLAlchemy to treat Swap.id as coming from the outer query
     )
 
-    # Main query: Get swaps that the user hasn’t requested yet
+    # Main query: Get swaps that the user hasn’t requested yet to display in swap stream
     unrequested_swaps = db.session.execute(
         select(Swap).filter(
             (Swap.user_id != user_id) &
             (Swap.is_satisfied == False) &
-            (~exists(subquery))
+            (~exists(subquery))&
+            (Swap.desired_skill_name_id.in_
+             (user_skill_name_ids))
         )
     ).scalars().all()
 
@@ -310,14 +318,15 @@ def edit_skill_desc(skill_id):
         return redirect(url_for('login'))
     
     new_desc = request.form.get('new-desc')
-    
+    print(new_desc)
     try:
         skill = db.get_or_404(Skill, skill_id)
         if skill:
             db.session.execute(
                 db.select(Skill).filter_by(id=skill_id)
             )
-            skill.desc = new_desc
+            skill.description = new_desc
+            db.session.commit()
         else:
             flash("Skill was not found.")
             return redirect(url_for('dashboard'))

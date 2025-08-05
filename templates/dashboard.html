@@ -114,6 +114,7 @@
     @media (max-width: 992px) {
       .sidebar {
         transform: translateX(-250px);
+        z-index: 1000;
       }
       .sidebar.active {
         transform: translateX(0);
@@ -329,12 +330,8 @@
                 </div>
               </div>
             </div>
-          {% else %}
-            <p class="text-muted">No skills added yet. Click "Add New Skill" to get started!</p>
-          {% endfor %}
-        </div>
-      </div>
-      <!-- Bootstrap Modal for Edit Skill -->
+
+                  <!-- Bootstrap Modal for Edit Skill -->
       <div class="modal fade" id="editSkillModal" tabindex="-1" aria-labelledby="editSkillModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content card-glass">
@@ -343,7 +340,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <form id="editSkillForm" action="#" method="POST">
+              <form id="editSkillForm" action="{{url_for('edit_skill_desc', skill_id=skill.id)}}" method="POST">
                 <div class="mb-3">
                   <label for="new-desc" class="form-label">Description</label>
                   <textarea class="form-control" id="new-desc" name="new-desc" rows="4" placeholder="Describe your skill"></textarea>
@@ -354,6 +351,13 @@
           </div>
         </div>
       </div>
+          {% else %}
+            <p class="text-muted">No skills added yet. Click "Add New Skill" to get started!</p>
+          {% endfor %}
+        </div>
+        
+      </div>
+
       <!-- Bootstrap Modal for Delete Skill Confirmation -->
       <div class="modal fade" id="confirmDeleteSkillModal" tabindex="-1" aria-labelledby="confirmDeleteSkillModalLabel" aria-hidden="true">
         <div class="modal-dialog">
