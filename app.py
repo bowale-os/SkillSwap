@@ -145,8 +145,8 @@ def dashboard():
                            current_user = current_user,
                            skills=user_skills,
                            swaps=unrequested_swaps,
-                           sent_swap_requests = sent_swap_requests,
-                           received_swap_requests = received_swap_requests
+                           sent_swap_requests = sent_swap_requests if sent_swap_requests else None,
+                           received_swap_requests = received_swap_requests if received_swap_requests else None
                            )
 
 
@@ -195,7 +195,7 @@ def add_skill():
     return redirect(url_for('dashboard'))
 
 
-@app.route('/send_swap_requests/<string:swap_id>', methods=['POST'])
+@app.route('/send_swap_request/<string:swap_id>', methods=['POST'])
 def send_swap_request(swap_id):
     user_id = session.get('user_id', None)
     if not user_id:
@@ -279,17 +279,88 @@ def discuss_swap_request(user_id):
     # return render_template('discuss-swap.html')
 
 
-@app.route('/delete_swap/<string:request_id>', methods=['GET'])
-def delete_swap_request(user_id):
+@app.route('/delete_swap_request/<string:request_id>', methods=['GET'])
+def delete_swap_request(request_id):
     
     user_id = session.get('user_id', None)
     if not user_id:
         return redirect(url_for('login'))
-    pass
     
+    try:
+        swap_request = db.get_or_404(SwapRequest, request_id)
+        if swap_request:
+            db.session.delete(swap_request)
+            db.session.commit()
+        else:
+            flash("Swap Request was not found.")
+            return redirect(url_for('dashboard'))
+    except Exception as e:
+        print(f"encountered this error, {e}")
+        flash("Please reach out to admin")
+        return redirect(url_for('dashboard'))
     
-    # return render_template('discuss-swap.html')
+    flash("Swap Request was removed successfully.")
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_skill_desc/<string:skill_id>', methods=['GET', 'POST'])
+def edit_skill_desc(skill_id):
+    
+    user_id = session.get('user_id', None)
+    if not user_id:
+        return redirect(url_for('login'))
+    
+    new_desc = request.form.get('new-desc')
+    
+    try:
+        skill = db.get_or_404(Skill, skill_id)
+        if skill:
+            db.session.execute(
+                db.select(Skill).filter_by(id=skill_id)
+            )
+            skill.desc = new_desc
+        else:
+            flash("Skill was not found.")
+            return redirect(url_for('dashboard'))
+    except Exception as e:
+        print(f"encountered this error, {e}")
+        flash("Please reach out to admin")
+        return redirect(url_for('dashboard'))
+    
+    flash("Skill was edited successfully.")
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete_skill/<string:skill_id>', methods=['GET'])
+def delete_skill(skill_id):
+    user_id = session.get('user_id', None)
+    if not user_id:
+        return redirect(url_for('login'))
+    
+    try:
+        skill = db.get_or_404(Skill, skill_id)
+        if skill.user_id != user_id:
+            flash("You are not authorized to delete this skill!", "error")
+            return redirect(url_for('dashboard'))
         
+        # Delete related SwapRequest records
+        related_requests = db.session.execute(
+            db.select(SwapRequest).filter(
+                (SwapRequest.sender_skill_id == skill_id) | (SwapRequest.recipient_skill_id == skill_id)
+            )
+        ).scalars().all()
+        
+        for request in related_requests:
+            db.session.delete(request)
+        
+        # Delete the skill
+        db.session.delete(skill)
+        db.session.commit()
+        flash("Skill and all related swap requests deleted successfully!", "success")
+    except Exception as e:
+        print(f"Encountered error while trying to delete Skill: {e}")
+        flash(f"Skill was not deleted! Please reach out to admin.", "error")
+        return redirect(url_for('dashboard'))
+    
+    return redirect(url_for('dashboard'))
 
 @app.route('/logout')
 def logout():
@@ -298,4 +369,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=False, port=8888)
+    app.run(debug=True, port=8888)
