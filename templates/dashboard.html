@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SkillSwap - Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -20,6 +21,7 @@
       height: 100vh;
       position: fixed;
       width: 250px;
+      transition: transform 0.3s ease-in-out;
     }
     .sidebar .nav-link {
       color: #111827;
@@ -34,6 +36,7 @@
     .content {
       margin-left: 250px;
       padding: 2rem;
+      transition: margin-left 0.3s ease-in-out;
     }
     .card-glass {
       background: rgba(255,255,255,0.9);
@@ -56,10 +59,16 @@
       padding: 0.4rem 0.8rem;
       border-radius: 20px;
     }
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1000;
+    }
     @media (max-width: 992px) {
       .sidebar {
         transform: translateX(-250px);
-        width: 250px;
       }
       .sidebar.active {
         transform: translateX(0);
@@ -67,10 +76,18 @@
       .content {
         margin-left: 0;
       }
+      .sidebar-toggle {
+        display: block;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Sidebar Toggle Button for Mobile -->
+  <button class="btn btn-primary sidebar-toggle" onclick="toggleSidebar()">
+    ☰
+  </button>
+
   <!-- Sidebar -->
   <nav class="sidebar" id="sidebar">
     <div class="mb-4">
@@ -82,9 +99,9 @@
         <a class="nav-link" href="#" onclick="showSection('stream')">Swap-Stream</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="#" onclick="showSection('sent')">Your Swap Requests</a>
+        <a class="nav-link" href="#" onclick="showSection('requests')">Your Swap Requests</a>
       </li>
-      <li class="nav-item"><a class="nav-link" href="#">Messages</a></li>
+      <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('info')">Your Info</a></li>
       <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Log Out</a></li>
     </ul>
   </nav>
@@ -93,8 +110,10 @@
   <div class="content">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h1 class="fs-2 fw-bold" style="color: #1E3A8A;">Welcome, {{ current_user.name.split()[0] }}!</h1>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSkillModal">Add New Skill</button>
-      <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#makeSwapModal">Make Swap</button>
+      <div>
+        <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addSkillModal">Add New Skill</button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#makeSwapModal">Make Swap</button>
+      </div>
     </div>
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -109,49 +128,105 @@
         {% endif %}
     {% endwith %}
 
-    
-
-    <div id="swap-skills-toggle-section">
-      <div class="mb-5" id="swap-stream-section" style="display: none;">
+    <div id="swap-toggle-section">
+      <div class="mb-5" id="swap-stream-section">
         <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Swap Stream</h2>
-          {% if swaps %}
-            <div class="row g-4">
-              {% for swap in swaps %}
-                <div class="col-md-6 col-lg-4">
-                  <div class="card card-glass">
-                      <div class="card-body">
-                        <h5 class="card-title">Skilled needed: {{ swap.desired_skill_name.name if swap.desired_skill_name.name else 'N/A' }}</h5>
-                        <p class="card-text">
-                          Skill Offered: {{ swap.offered_skill.skill_name.name if  swap.offered_skill.skill_name.name else "N/A" }} <br>
-                          Description: {{ swap.description or "No details provided." }}
-                        </p>
-                          <form action="{{ url_for('send_swap_request', swap_id=swap.id) }}" method="POST" class="mt-2">
-                              <label for="sender_skill_id">Choose the skill to offer:</label>
-                                <select name="sender_skill_id" id="sender_skill_id" required class="form-select form-select-sm mb-2">
-                                  {% for skill in current_user.skills %}
-                                    <option value="{{ skill.id }}">{{ skill.skill_name.name }}</option>
-                                  {% endfor %}
-                                </select>
-                            <button type="submit" class="btn btn-sm btn-success">
-                              Send Swap Request to {{ swap.user.name if swap.user else "Unknown" }}
-                            </button>
-                          </form>
-
-                      </div>
+        {% if swaps %}
+          <div class="row g-4">
+            {% for swap in swaps %}
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-glass">
+                  <div class="card-body">
+                    <h5 class="card-title">Skill needed: {{ swap.desired_skill_name.name if swap.desired_skill_name else 'N/A' }}</h5>
+                    <p class="card-text">
+                      Skill Offered: {{ swap.offered_skill.skill_name.name if swap.offered_skill.skill_name else "N/A" }} <br>
+                      Description: {{ swap.description or "No details provided." }}
+                    </p>
+                    <form action="{{ url_for('send_swap_request', swap_id=swap.id) }}" method="POST" class="mt-2">
+                      <label for="sender_skill_id_{{ swap.id }}">Choose the skill to offer:</label>
+                      <select name="sender_skill_id" id="sender_skill_id_{{ swap.id }}" required class="form-select form-select-sm mb-2">
+                        {% for skill in current_user.skills %}
+                          <option value="{{ skill.id }}">{{ skill.skill_name.name }}</option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-sm btn-success">
+                        Send Swap Request to {{ swap.user.name if swap.user else "Unknown" }}
+                      </button>
+                    </form>
                   </div>
                 </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="text-muted">No swap requests posted yet.</p>
-          {% endif %}
-        </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted">No swap requests posted yet.</p>
+        {% endif %}
+      </div>
+    </div>
 
-        <!-- Your Skills -->
-        <div class="mb-5" id="skills-section">
-          <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Your Skills</h2>
+    <div id="requests-toggle-section" style="display: none;">
+      <div class="mb-5" id="sent-requests-section">
+        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Sent Swap Requests</h2>
+        {% if sent_swap_requests %}
           <div class="row g-4">
-            {% for skill in skills %}
+            {% for request in sent_swap_requests %}
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-glass">
+                  <div class="card-body">
+                    <h5 class="card-title">To: {{ request.recipient.name if request.recipient else "Unknown" }}</h5>
+                    <p class="card-text">
+                      You offered: <strong>{{ request.sender_skill.skill_name.name }}</strong><br>
+                      They want: <strong>{{ request.recipient_skill.skill_name.name }}</strong><br>
+                      Description: {{ request.swap.description or "No description" }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted">You haven't sent any swap requests yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="mb-5" id="received-requests-section">
+        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Received Swap Requests</h2>
+        {% if received_swap_requests %}
+          <div class="row g-4">
+            {% for request in received_swap_requests %}
+              <div class="col-md-6 col-lg-4">
+                <div class="card card-glass">
+                  <div class="card-body">
+                    <h5 class="card-title">From: {{ request.sender.name if request.sender else "Unknown" }}</h5>
+                    <p class="card-text">
+                      You want: <strong>{{ request.recipient_skill.skill_name.name }}</strong><br>
+                      They offered: <strong>{{ request.sender_skill.skill_name.name }}</strong><br>
+                      Description: {{ request.swap.description or "No description" }}
+                    </p>
+                    <div class="flex-row">
+                      <a href="{{ url_for('discuss_swap_request', request_id=request.id) }}" class="btn btn-primary mt-2">
+                        Discuss Request
+                      </a>
+                      <a href="{{ url_for('delete_swap_request', request_id=request.id) }}" class="btn btn-primary mt-2">
+                        Delete Request
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted">You haven't received any swap requests yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="user-info-toggle-section" style="display: none;">
+      <div class="mb-5" id="skills-section">
+        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Your Skills</h2>
+        <div class="row g-4">
+          {% for skill in skills %}
             <div class="col-md-6 col-lg-4">
               <div class="card card-glass">
                 <div class="card-body">
@@ -170,66 +245,14 @@
                 </div>
               </div>
             </div>
-            {% else %}
+          {% else %}
             <p class="text-muted">No skills added yet. Click "Add New Skill" to get started!</p>
-            {% endfor %}
-          </div>
-        </div>
-        </div>
-
-
-        <div id="requests-section">
-        <div class="mb-5" id="sent-requests-section" style="display: none;">
-          <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Sent Swap Requests</h2>
-          {% if sent_swap_requests %}
-            <div class="row g-4">
-              {% for request in sent_swap_requests %}
-                <div class="col-md-6 col-lg-4">
-                  <div class="card card-glass">
-                    <div class="card-body">
-                      <h5 class="card-title">To: {{ request.recipient.name if request.recipient.name else "Unknown" }}</h5>
-                      <p class="card-text">
-                        You offered: <strong>{{ request.sender_skill.skill_name.name }}</strong><br>
-                        They want: <strong>{{ request.recipient_skill.skill_name.name }}</strong><br>
-                        Description: {{ request.swap.description or "No description" }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="text-muted">You haven't sent any swap requests yet.</p>
-          {% endif %}
-        </div>
-
-        
-        <div class="mb-5" id="received-requests-section" style="display: none;">
-          <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Received Swap Requests</h2>
-          {% if received_swap_requests %}
-            <div class="row g-4">
-              {% for request in received_swap_requests %}
-                <div class="col-md-6 col-lg-4">
-                  <div class="card card-glass">
-                    <div class="card-body">
-                      <h5 class="card-title">From: {{ request.sender.name if request.sender.name else "Unknown" }}</h5>
-                      <p class="card-text">
-                        You want: <strong>{{ request.recipient_skill.skill_name.name }}</strong><br>
-                        They offered: <strong>{{ request.sender_skill.skill_name.name }}</strong><br>
-                        Description: {{ request.swap.description or "No description" }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="text-muted">You haven't sent any swap requests yet.</p>
-          {% endif %}
+          {% endfor %}
         </div>
       </div>
+    </div>
 
-<!-- Add Skill Modal -->
+    <!-- Add Skill Modal -->
     <div class="modal fade" id="addSkillModal" tabindex="-1" aria-labelledby="addSkillModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content card-glass">
@@ -239,26 +262,22 @@
           </div>
           <div class="modal-body">
             {% for field, errors in form.errors.items() %}
-                <div style="color:red">{{ field }}: {{ errors }}</div>
+              <div style="color:red">{{ field }}: {{ errors }}</div>
             {% endfor %}
             <form action="{{ url_for('add_skill') }}" method="POST">
               {{ form.hidden_tag() }}
-
               <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
                 {{ form.name(class="form-control", id="skill-select", required=True) }}
               </div>
-
               <div class="mb-3">
                 {{ form.category.label(class="form-label") }}
                 {{ form.category(class="form-control", id="category-select", required=True) }}
               </div>
-
               <div class="mb-3">
                 {{ form.description.label(class="form-label") }}
                 {{ form.description(class="form-control", rows=4, required=True) }}
               </div>
-
               <button type="submit" class="btn btn-primary w-100">Add Skill</button>
             </form>
           </div>
@@ -266,7 +285,7 @@
       </div>
     </div>
 
-        <!-- Make Swap Modal -->
+    <!-- Make Swap Modal -->
     <div class="modal fade" id="makeSwapModal" tabindex="-1" aria-labelledby="makeSwapModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content card-glass">
@@ -276,97 +295,94 @@
           </div>
           <div class="modal-body">
             {% for field, errors in swap_form.errors.items() %}
-                <div style="color:red">{{ field }}: {{ errors }}</div>
+              <div style="color:red">{{ field }}: {{ errors }}</div>
             {% endfor %}
             <form action="{{ url_for('make_swap') }}" method="POST">
               {{ swap_form.hidden_tag() }}
-
               <div class="mb-3">
                 {{ swap_form.desired_skill_name.label(class="form-label") }}
-                {{ swap_form.desired_skill_name(class="form-control", required=True) }}
-                {{ swap_form.offered_skill_id.label }}
-                {{ swap_form.offered_skill_id(class="form-control") }}
-                {{ swap_form.description.label(class="form-label") }}
-                {{ swap_form.description(class="form-control", required=True) }}
+                {{ swap_form.desired_skill_name(class="form-control", id="desired-skill-select", required=True) }}
               </div>
-
+              <div class="mb-3">
+                {{ swap_form.offered_skill_id.label(class="form-label") }}
+                {{ swap_form.offered_skill_id(class="form-control", id="offered-skill-select", required=True) }}
+              </div>
+              <div class="mb-3">
+                {{ swap_form.description.label(class="form-label") }}
+                {{ swap_form.description(class="form-control", rows=4, required=True) }}
+              </div>
               <button type="submit" class="btn btn-success w-100">Submit Swap Request</button>
             </form>
           </div>
         </div>
       </div>
     </div>
-
-    
   </div>
 
-<!-- Add jQuery before select2 -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // Initialize Select2
+      $('#skill-select').select2({
+        placeholder: "Select a skill",
+        allowClear: true
+      });
+      $('#category-select').select2({
+        placeholder: "Select a category",
+        allowClear: true
+      });
+      $('#desired-skill-select').select2({
+        placeholder: "Select a desired skill",
+        allowClear: true
+      });
+      $('#offered-skill-select').select2({
+        placeholder: "Select a skill to offer",
+        allowClear: true
+      });
 
-<script>
-  // Initialize select2 on your skill/category selects
-  $(document).ready(function() {
-    $('#skill-select').select2({
-      placeholder: "Select a skill",
-      allowClear: true
+      // Initialize default section
+      showSection('stream');
+
+      // Sidebar nav active class toggle
+      $('.sidebar .nav-link').click(function(e) {
+        if ($(this).attr('href').startsWith('#')) {
+          e.preventDefault(); // Prevent default only for section links
+        }
+        $('.sidebar .nav-link').removeClass('active');
+        $(this).addClass('active');
+      });
     });
-    $('#category-select').select2({
-      placeholder: "Select a category",
-      allowClear: true
-    });
 
-    // Set initial default section to "stream"
-    showSection('stream');
+    function showSection(section) {
+      const swapSection = document.getElementById('swap-toggle-section');
+      const requestsSection = document.getElementById('requests-toggle-section');
+      const userInfoSection = document.getElementById('user-info-toggle-section');
 
-    // Setup sidebar nav active class toggle
-    $('.sidebar .nav-link').click(function(e) {
-      e.preventDefault();  // prevent default anchor behavior
-      // Remove 'active' from all
-      $('.sidebar .nav-link').removeClass('active');
-      // Add 'active' to clicked
-      $(this).addClass('active');
+      // Hide all sections
+      swapSection.style.display = 'none';
+      requestsSection.style.display = 'none';
+      userInfoSection.style.display = 'none';
 
-      // Get the section to show from clicked link text or data attribute
-      if ($(this).text().trim() === "Swap-Stream") {
-        showSection('stream');
-      } else if ($(this).text().trim() === "Your Swap Requests") {
-        showSection('sent');
+      // Show the selected section
+      if (section === 'stream') {
+        swapSection.style.display = 'block';
+      } else if (section === 'requests') {
+        requestsSection.style.display = 'block';
+      } else if (section === 'info') {
+        userInfoSection.style.display = 'block';
       }
-      // For other links (like Dashboard, Messages, Log Out), you can handle as needed
-    });
-  });
-</script>
 
-<script>
-function showSection(section) {
-  const swapSkillsSection = document.getElementById("swap-skills-toggle-section");
-  const requestsSection = document.getElementById("requests-section");
+      // Close sidebar on mobile after selection
+      if (window.innerWidth <= 992) {
+        document.getElementById('sidebar').classList.remove('active');
+      }
+    }
 
-  if (section === "stream") {
-    swapSkillsSection.style.display = "block";
-    requestsSection.style.display = "none";
-
-    document.getElementById("swap-stream-section").style.display = "block";
-    document.getElementById("skills-section").style.display = "block";
-
-    document.getElementById("sent-requests-section").style.display = "none";
-    document.getElementById("received-requests-section").style.display = "none";
-
-  } else if (section === "sent") {
-    swapSkillsSection.style.display = "none";
-    requestsSection.style.display = "block";
-
-    document.getElementById("sent-requests-section").style.display = "block";
-    document.getElementById("received-requests-section").style.display = "block";
-
-    document.getElementById("swap-stream-section").style.display = "none";
-    document.getElementById("skills-section").style.display = "none";
-  }
-}
-</script>
-
-
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+  </script>
 </body>
 </html>

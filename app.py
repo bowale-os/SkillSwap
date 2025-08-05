@@ -266,22 +266,29 @@ def make_swap():
         
         return redirect(url_for('dashboard'))
 
-# @app.route('/discuss_swap/<string:swap_id>', methods=['GET'])
-# def discuss_swap(swap_id):
-    
-#     user_id = session.get('user_id', None)
-#     if not user_id:
-#         return redirect(url_for('login'))
-    
-#     swap = db.get_or_404(Swap, swap_id)
 
-#     if not swap:
-#         return "Swap not found", 404
+@app.route('/discuss_swap/<string:request_id>', methods=['GET'])
+def discuss_swap_request(user_id):
+    
+    user_id = session.get('user_id', None)
+    if not user_id:
+        return redirect(url_for('login'))
+    pass
     
     
-#     return render_template('discuss-swap.html', swap=swap)
+    # return render_template('discuss-swap.html')
 
 
+@app.route('/delete_swap/<string:request_id>', methods=['GET'])
+def delete_swap_request(user_id):
+    
+    user_id = session.get('user_id', None)
+    if not user_id:
+        return redirect(url_for('login'))
+    pass
+    
+    
+    # return render_template('discuss-swap.html')
         
 
 @app.route('/logout')
@@ -291,4 +298,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8888)
+    app.run(debug=False, port=8888)
