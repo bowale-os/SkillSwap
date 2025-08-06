@@ -1,12 +1,25 @@
+#Built-ins
+import os
+
+#Local imports
+from forms import SignupForm, LoginForm, AddSkillForm, MakeSwapForm
+from models import db, User, Skill, Swap, SkillName, Category, SwapConversation, SwapMessage, SwapRequest, SwapStatus
+
+#3rd-party imports
 from flask import Flask, jsonify, render_template, url_for, session, redirect, flash, request
 from sqlalchemy import exists, select
-from forms import SignupForm, LoginForm, AddSkillForm, MakeSwapForm
-from models import db, User, Skill, Swap, SkillName, Category, SwapConversation, SwapMessage, SwapRequest
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 load_dotenv()
 
-import os
+
+#auth-helper-function
+def get_current_user():
+    user_id = session.get('user_id')
+    if not user_id:
+        return None
+    return db.session.get(User, user_id)
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -23,9 +36,10 @@ with app.app_context():
 
 @app.route('/')
 def home():
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if user:
         return redirect(url_for('dashboard'))
+
     return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -75,94 +89,90 @@ def login():
 
 @app.route('/dashboard')
 def dashboard():
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
     
-    #stuff for skill and swap forms
+    user_id = user.id
+
     form = AddSkillForm()
     swap_form = MakeSwapForm()
 
-    skill_names = db.session.execute(
-        db.select(SkillName)
-    ).scalars().all()
+    skill_names = db.session.execute(db.select(SkillName)).scalars().all()
+    categories = db.session.execute(db.select(Category)).scalars().all()
 
-    categories = db.session.execute(
-        db.select(Category)
-    ).scalars().all()
-
-    form.name.choices = [(skill_name.id, skill_name.name) for skill_name in skill_names]
-    form.category.choices = [(category.id, category.name) for category in categories]
-
-    #stuff for skill display
+    form.name.choices = [(sn.id, sn.name) for sn in skill_names]
+    form.category.choices = [(cat.id, cat.name) for cat in categories]
 
     user_skills = db.session.execute(
-            db.select(Skill).filter_by(user_id=user_id)
+        db.select(Skill).filter_by(user_id=user_id)
     ).scalars().all()
 
-    other_skill_names = db.session.execute(
-        db.select(SkillName)
-    ).scalars().all()
-
-     # 👇 Dynamically set SelectField choices for the swap form
-    swap_form.desired_skill_name.choices = [(skill_name.id, skill_name.name) for skill_name in other_skill_names]
-    swap_form.offered_skill_id.choices = [(skill.id, skill.skill_name.name) for skill in user_skills]
-
-    current_user = db.session.execute(
-        db.select(User).filter_by(id=user_id)
-    ).scalar_one_or_none()
-
-
-    sent_swap_requests = db.session.execute(
-        db.select(SwapRequest).filter_by(sender_id=user_id)
-    ).scalars().all()
-
-    received_swap_requests = db.session.execute(
-        db.select(SwapRequest).filter_by(recipient_id=user_id)
-    ).scalars().all()
-
-    # Get the skill_name_ids of the user's skills to make displayed swaps correct
     user_skill_name_ids = [skill.skill_name_id for skill in user_skills if skill.skill_name_id]
-    
-    # Subquery: Check if a SwapRequest exists from the current user for this Swap
+
+    print(f"User skill_name_ids: {user_skill_name_ids}")
+    print(f"User skills count: {len(user_skills)}")
+
+    # Just all open or in_discussion swaps for testing
+    open_swaps = db.session.execute(
+        db.select(Swap).filter(
+            Swap.status.in_([SwapStatus.open, SwapStatus.in_discussion])
+        )
+    ).scalars().all()
+    print(f"Total open/in_discussion swaps: {len(open_swaps)}")
+
+    # Subquery: Check if user already sent a swap request for that swap
     subquery = (
-        select(SwapRequest.id)
+        db.select(SwapRequest.id)
         .filter(
             SwapRequest.swap_id == Swap.id,
             SwapRequest.sender_id == user_id
         )
-        .correlate(Swap)  # 👈 THIS is what tells SQLAlchemy to treat Swap.id as coming from the outer query
+        .correlate(Swap)
     )
 
-    # Main query: Get swaps that the user hasn’t requested yet to display in swap stream
+    # Main query with all filters (your original query)
     unrequested_swaps = db.session.execute(
-        select(Swap).filter(
-            (Swap.user_id != user_id) &
-            (Swap.is_satisfied == False) &
-            (~exists(subquery))&
-            (Swap.desired_skill_name_id.in_
-             (user_skill_name_ids))
+        db.select(Swap).filter(
+            (Swap.user_id != user_id),
+            (Swap.status.in_([SwapStatus.open, SwapStatus.in_discussion])),
+            (~db.exists(subquery)),
+            (Swap.desired_skill_name_id.in_(user_skill_name_ids))
         )
     ).scalars().all()
 
+    print(f"Unrequested swaps count: {len(unrequested_swaps)}")
+    for swap in unrequested_swaps:
+        print(f"Swap id: {swap.id}, Offered skill: {swap.offered_skill.skill_name.name}, Desired skill: {swap.desired_skill_name.name}")
 
-    
-    return render_template('dashboard.html',
-                           form=form, 
-                           swap_form=swap_form, 
-                           current_user = current_user,
-                           skills=user_skills,
-                           swaps=unrequested_swaps,
-                           sent_swap_requests = sent_swap_requests if sent_swap_requests else None,
-                           received_swap_requests = received_swap_requests if received_swap_requests else None
-                           )
+    # Prepare swap_form choices
+    other_skill_names = db.session.execute(db.select(SkillName)).scalars().all()
+    swap_form.desired_skill_name.choices = [(sn.id, sn.name) for sn in other_skill_names]
+    swap_form.offered_skill_id.choices = [(skill.id, skill.skill_name.name) for skill in user_skills]
+
+    sent_swap_requests = db.session.execute(db.select(SwapRequest).filter_by(sender_id=user_id)).scalars().all()
+    received_swap_requests = db.session.execute(db.select(SwapRequest).filter_by(recipient_id=user_id)).scalars().all()
+
+    return render_template(
+        'dashboard.html',
+        form=form,
+        swap_form=swap_form,
+        current_user=user,
+        skills=user_skills,
+        swaps=unrequested_swaps,
+        sent_swap_requests=sent_swap_requests or None,
+        received_swap_requests=received_swap_requests or None
+    )
 
 
 @app.route('/add-skill', methods=['POST'])
 def add_skill():
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+    
+    user_id = user.id
+
 
     form = AddSkillForm()
 
@@ -205,9 +215,12 @@ def add_skill():
 
 @app.route('/send_swap_request/<string:swap_id>', methods=['POST'])
 def send_swap_request(swap_id):
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+    
+    user_id = user.id
+
     sender_skill_id = request.form.get('sender_skill_id')
     
     swap = db.get_or_404(Swap, swap_id)
@@ -239,9 +252,12 @@ def send_swap_request(swap_id):
 
 @app.route('/make-swap', methods=['POST'])
 def make_swap():
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+    
+    user_id = user.id
+
     
     form = MakeSwapForm()
 
@@ -276,13 +292,10 @@ def make_swap():
 
 
 @app.route('/discuss_swap/<string:request_id>', methods=['GET'])
-def discuss_swap_request(user_id):
-    
-    user_id = session.get('user_id', None)
-    if not user_id:
+def discuss_swap_request(request_id):
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
-    pass
-    
     
     # return render_template('discuss-swap.html')
 
@@ -290,9 +303,10 @@ def discuss_swap_request(user_id):
 @app.route('/delete_swap_request/<string:request_id>', methods=['GET'])
 def delete_swap_request(request_id):
     
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+
     
     try:
         swap_request = db.get_or_404(SwapRequest, request_id)
@@ -313,9 +327,10 @@ def delete_swap_request(request_id):
 @app.route('/edit_skill_desc/<string:skill_id>', methods=['GET', 'POST'])
 def edit_skill_desc(skill_id):
     
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+
     
     new_desc = request.form.get('new-desc')
     print(new_desc)
@@ -340,9 +355,12 @@ def edit_skill_desc(skill_id):
 
 @app.route('/delete_skill/<string:skill_id>', methods=['GET'])
 def delete_skill(skill_id):
-    user_id = session.get('user_id', None)
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return redirect(url_for('login'))
+    
+    user_id = user.id
+
     
     try:
         skill = db.get_or_404(Skill, skill_id)
