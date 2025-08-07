@@ -1,5 +1,5 @@
-from .base import *
-from .enums import *
+from .base import Base, generate_uuid
+from .enums import RequestStatus
 from datetime import datetime, timezone
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, DateTime, ForeignKey, Enum

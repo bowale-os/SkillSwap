@@ -1,4 +1,4 @@
-from .base import *
+from .base import Base, generate_uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String
 

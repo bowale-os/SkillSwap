@@ -2,5 +2,4 @@ instance
 __pycache__
 migrations
 .env
-instance
 seed_script.py

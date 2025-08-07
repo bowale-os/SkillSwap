@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_socketio import SocketIO
 from models import db
-from routes import routes_bp
+from routes import register_routes
 from sockets import socketio
 
 def create_app():
@@ -11,11 +11,14 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
 
+    # Import all models to ensure they are registered with SQLAlchemy
+    from models import User, Skill, SkillName, Category, Swap, SwapRequest, DiscussRequest, SwapMessage, SwapConversation
+
     with app.app_context():
         db.create_all() 
 
     # Register blueprints
-    app.register_blueprint(routes_bp)
+    register_routes(app)
 
     # Initialize SocketIO with the app
     socketio.init_app(app, cors_allowed_origins="*")  # add CORS if needed
