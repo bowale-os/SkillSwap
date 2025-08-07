@@ -3,7 +3,7 @@ import os
 
 #Local imports
 from forms import SignupForm, LoginForm, AddSkillForm, MakeSwapForm
-from models import db, User, Skill, Swap, SkillName, Category, SwapConversation, SwapMessage, SwapRequest, SwapStatus
+from models import db, User, Skill, Swap, SkillName, Category, SwapConversation, SwapMessage, SwapRequest, SwapStatus, DiscussRequest, RequestStatus
 
 #3rd-party imports
 from flask import Flask, jsonify, render_template, url_for, session, redirect, flash, request
@@ -153,6 +153,10 @@ def dashboard():
     sent_swap_requests = db.session.execute(db.select(SwapRequest).filter_by(sender_id=user_id)).scalars().all()
     received_swap_requests = db.session.execute(db.select(SwapRequest).filter_by(recipient_id=user_id)).scalars().all()
 
+    sent_discuss_requests = db.session.execute(db.select(DiscussRequest).filter_by(sender_id=user_id)).scalars().all()
+    received_discuss_requests = db.session.execute(db.select(DiscussRequest).filter_by(recipient_id=user_id)).scalars().all()
+
+
     return render_template(
         'dashboard.html',
         form=form,
@@ -161,7 +165,9 @@ def dashboard():
         skills=user_skills,
         swaps=unrequested_swaps,
         sent_swap_requests=sent_swap_requests or None,
-        received_swap_requests=received_swap_requests or None
+        received_swap_requests=received_swap_requests or None,
+        sent_discuss_requests=sent_discuss_requests or None,
+        received_discuss_requests=received_discuss_requests or None
     )
 
 
@@ -297,8 +303,77 @@ def discuss_swap_request(request_id):
     if not user:
         return redirect(url_for('login'))
     
+    user_id = user.id
+    
+    corr_swap_request = db.get_or_404(SwapRequest, request_id)
+
+    # Check if the user is the recipient of the original swap request
+    if corr_swap_request.recipient_id != user_id:
+        flash("You are not authorized to start this discussion.", "danger")
+        return redirect(url_for('dashboard'))
+    
+    # Check if a DiscussRequest already exists
+    existing_discuss = db.session.execute(
+        select(DiscussRequest).where(
+            DiscussRequest.sender_id == user_id,
+            DiscussRequest.recipient_id == corr_swap_request.sender_id,
+            DiscussRequest.swap_id == corr_swap_request.swap_id
+        )
+    ).scalar_one_or_none()
+    
+    if existing_discuss:
+        flash("Discussion already initiated.", "info")
+        return redirect(url_for('view_discuss_request', request_id=existing_discuss.id))
+    
+
+    # Create the DiscussRequest
+    discuss_request = DiscussRequest(
+        sender_id=user_id,
+        recipient_id=corr_swap_request.sender_id,
+        swap_id=corr_swap_request.swap_id,
+        sender_skill_id=corr_swap_request.recipient_skill_id,
+        recipient_skill_id=corr_swap_request.sender_skill_id,
+        status=RequestStatus.pending  # or whatever your default status is
+    )
+    
+    db.session.add(discuss_request)
+    db.session.commit()
+
+    flash("Discussion request sent successfully!", "success")
+    return redirect(url_for('dashboard'))  # or a page to track pending requests
+
     # return render_template('discuss-swap.html')
 
+@app.route('/view_discuss_request')
+def view_discuss_request():
+    pass
+
+@app.route('/withdraw_discuss_request')
+def withdraw_discuss_request():
+    pass
+
+@app.route('/delete_discuss_request/<string:request_id>', methods=['GET'])
+def delete_discuss_request(request_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+
+    
+    try:
+        discuss_request = db.get_or_404(DiscussRequest, request_id)
+        if discuss_request:
+            db.session.delete(discuss_request)
+            db.session.commit()
+        else:
+            flash("Discuss Request was not found.")
+            return redirect(url_for('dashboard'))
+    except Exception as e:
+        print(f"encountered this error, {e}")
+        flash("Please reach out to admin")
+        return redirect(url_for('dashboard'))
+    
+    flash("Discuss Request was removed successfully.")
+    return redirect(url_for('dashboard'))
 
 @app.route('/delete_swap_request/<string:request_id>', methods=['GET'])
 def delete_swap_request(request_id):
@@ -323,6 +398,10 @@ def delete_swap_request(request_id):
     
     flash("Swap Request was removed successfully.")
     return redirect(url_for('dashboard'))
+
+
+
+
 
 @app.route('/edit_skill_desc/<string:skill_id>', methods=['GET', 'POST'])
 def edit_skill_desc(skill_id):
@@ -352,6 +431,10 @@ def edit_skill_desc(skill_id):
     
     flash("Skill was edited successfully.")
     return redirect(url_for('dashboard'))
+
+
+
+
 
 @app.route('/delete_skill/<string:skill_id>', methods=['GET'])
 def delete_skill(skill_id):
@@ -396,4 +479,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8888)
+    app.run(debug=True, port=8000)

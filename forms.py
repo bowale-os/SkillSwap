@@ -51,7 +51,7 @@ class AddSkillForm(FlaskForm):
     description = TextAreaField(
         'Description',
         validators=[DataRequired(), Length(min=20, max=500)],
-        render_kw={"placeholder": "Describe your skill or what you want to learn..."}
+        render_kw={"placeholder": "Describe your skill (what exactly can you do?)..."}
     )
     
 
