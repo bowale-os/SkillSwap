@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, DateTime, ForeignKey, Enum
 
 from .base import Base, generate_uuid
-from .enums import SwapStatus
+from .enums import SwapStatus, RequestStatus
 
 class Swap(Base):
     __tablename__ = 'swaps'
@@ -24,6 +24,44 @@ class Swap(Base):
     swap_conversations: Mapped[list['SwapConversation']] = relationship('SwapConversation', back_populates='swap')
     swap_requests: Mapped[list['SwapRequest']] = relationship('SwapRequest', back_populates='swap')
     discuss_requests: Mapped[list['DiscussRequest']] = relationship('DiscussRequest', back_populates='swap')
+
+    def update_status(self):
+        """Automatically update swap status based on its requests"""
+        if not self.swap_requests:
+            self.status = SwapStatus.open
+            return
+        
+        # Check if any swap request is accepted
+        accepted_requests = [req for req in self.swap_requests if req.status == RequestStatus.accepted]
+        if accepted_requests:
+            self.status = SwapStatus.in_discussion
+            return
+        
+        # Check if all requests are rejected or cancelled
+        all_rejected_or_cancelled = all(
+            req.status in [RequestStatus.rejected, RequestStatus.cancelled] 
+            for req in self.swap_requests
+        )
+        if all_rejected_or_cancelled and self.swap_requests:
+            self.status = SwapStatus.cancelled
+            return
+        
+        # Check if any discuss request is accepted
+        accepted_discuss = [req for req in self.discuss_requests if req.status == RequestStatus.accepted]
+        if accepted_discuss:
+            self.status = SwapStatus.in_discussion
+            return
+        
+        # Default to open if there are pending requests
+        self.status = SwapStatus.open
+
+    @classmethod
+    def update_all_statuses(cls, db_session):
+        """Update status for all swaps in the database"""
+        swaps = db_session.execute(db.select(cls)).scalars().all()
+        for swap in swaps:
+            swap.update_status()
+        db_session.commit()
 
     def __repr__(self):
         return f"<Swap offering skill {self.offered_skill.skill_name.name} for {self.desired_skill_name.name}>"

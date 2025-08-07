@@ -36,10 +36,25 @@ class DiscussRequest(Base):
     recipient_skill: Mapped['Skill'] = relationship('Skill', foreign_keys=[recipient_skill_id])
 
     def accept(self):
+        """Accept the discuss request and update related statuses"""
         self.status = RequestStatus.accepted
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
 
     def reject(self):
+        """Reject the discuss request and update related statuses"""
         self.status = RequestStatus.rejected
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
+
+    def cancel(self):
+        """Cancel the discuss request and update related statuses"""
+        self.status = RequestStatus.cancelled
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
 
     def __repr__(self):
         return f"<DiscussRequest from {self.sender_id} to {self.recipient_id} for swap {self.swap_id} status={self.status}>"

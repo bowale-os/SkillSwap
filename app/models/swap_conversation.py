@@ -9,7 +9,6 @@ class SwapConversation(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=generate_uuid)
     swap_id: Mapped[str] = mapped_column(String, ForeignKey('swaps.id'), nullable=False)
-    discuss_request_id: Mapped[str] = mapped_column(String, ForeignKey('discuss_requests.id'), nullable=False)
     sender_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), nullable=False)  # person who started the convo
     recipient_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), nullable=False)  # person who made the swap
 
@@ -18,8 +17,7 @@ class SwapConversation(Base):
     discuss_request: Mapped['DiscussRequest'] = relationship(
         "DiscussRequest",
         back_populates="swap_conversation",
-        uselist=False,
-        foreign_keys=lambda: [__import__('app.models.discuss_request', fromlist=['DiscussRequest']).DiscussRequest.swap_conversation_id]
+        uselist=False
         )
 
     sender: Mapped["User"] = relationship("User", foreign_keys=[sender_id])

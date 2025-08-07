@@ -28,5 +28,26 @@ class SwapRequest(Base):
     sender_skill: Mapped[Skill] = relationship('Skill', foreign_keys=[sender_skill_id])
     recipient_skill: Mapped[Skill] = relationship('Skill', foreign_keys=[recipient_skill_id])
 
+    def accept(self):
+        """Accept the swap request and update related statuses"""
+        self.status = RequestStatus.accepted
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
+    
+    def reject(self):
+        """Reject the swap request and update related statuses"""
+        self.status = RequestStatus.rejected
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
+    
+    def cancel(self):
+        """Cancel the swap request and update related statuses"""
+        self.status = RequestStatus.cancelled
+        # Update the swap status
+        if self.swap:
+            self.swap.update_status()
+
     def __repr__(self):
         return f"<SwapRequest {self.sender_id} offers {self.sender_skill_id} for {self.recipient_skill_id}>"

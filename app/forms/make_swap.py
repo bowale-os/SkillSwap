@@ -15,5 +15,5 @@ class MakeSwapForm(FlaskForm):
     )
     description = TextAreaField(
         'Describe your swap (optional)',
-        validators=[Length(min=20, max=300), DataRequired()]
+        validators=[Length(max=300)]
     )

@@ -1,5 +1,5 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
-from app.models import db, User, Skill, SwapRequest, RequestStatus
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from app.models import db, User, Skill, SwapRequest, RequestStatus, Swap, SkillName
 from app.forms.make_swap import MakeSwapForm
 
 request_bp = Blueprint('request', __name__)
@@ -8,8 +8,49 @@ def get_current_user():
     user_id = session.get('user_id')
     return db.session.get(User, user_id) if user_id else None
 
-@request_bp.route('/request_swap', methods=['GET', 'POST'])
+@request_bp.route('/make-swap', methods=['POST'])
 def make_swap():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth.login'))
+    
+    user_id = user.id
+    
+    form = MakeSwapForm()
+
+    user_skills = db.session.execute(
+        db.select(Skill).filter_by(user_id=user_id)
+    ).scalars().all()
+
+    other_skill_names = db.session.execute(
+        db.select(SkillName)
+    ).scalars().all()
+
+    # Dynamically set SelectField choices for the swap form
+    form.offered_skill_id.choices = [(skill.id, skill.skill_name.name) for skill in user_skills]
+    form.desired_skill_name.choices = [(skill_name.id, skill_name.name) for skill_name in other_skill_names]
+
+    if form.validate_on_submit():
+        desired_skill_name = form.desired_skill_name.data
+        offered_skill_id = form.offered_skill_id.data
+        description = form.description.data or ""  # Handle empty description
+
+        try:
+            swap = Swap(desired_skill_name_id=desired_skill_name, offered_skill_id=offered_skill_id, description=description, user_id=user_id)
+            db.session.add(swap)
+            db.session.commit()
+            flash("Your swap request has been added to the Swap-Stream!", "success")
+        except Exception as e:
+            print(f"Error: {e}")
+            flash(f"Some error occurred while creating your swap request. Please message admin.", "error")
+            return redirect(url_for('dashboard.dashboard'))
+        
+        return redirect(url_for('dashboard.dashboard'))
+
+    return redirect(url_for('dashboard.dashboard'))
+
+@request_bp.route('/request_swap', methods=['GET', 'POST'])
+def request_swap():
     user = get_current_user()
     if not user:
         return redirect(url_for('auth.login'))
@@ -52,8 +93,8 @@ def make_swap():
 def accept_request(request_id):
     user = get_current_user()
     swap_request = db.session.get(SwapRequest, request_id)
-    if swap_request and swap_request.receiver_id == user.id:
-        swap_request.status = RequestStatus.ACCEPTED
+    if swap_request and swap_request.recipient_id == user.id:
+        swap_request.status = RequestStatus.accepted
         db.session.commit()
     return redirect(url_for('dashboard.dashboard'))
 
@@ -61,8 +102,8 @@ def accept_request(request_id):
 def reject_request(request_id):
     user = get_current_user()
     swap_request = db.session.get(SwapRequest, request_id)
-    if swap_request and swap_request.sender_id == user.id:
-        swap_request.status = RequestStatus.REJECTED
+    if swap_request and swap_request.recipient_id == user.id:
+        swap_request.status = RequestStatus.rejected
         db.session.commit()
     return redirect(url_for('dashboard.dashboard'))
 

@@ -67,7 +67,8 @@ class MakeSwapForm(FlaskForm):
          coerce=str
         )
     description = TextAreaField(
-        'Describe your swap (optional)', validators=[Length(min=20, max=300), DataRequired()]
+        'Describe your swap (optional)', 
+        validators=[Length(max=300)]
         )
 
 
