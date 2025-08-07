@@ -135,11 +135,11 @@
       <a class="navbar-brand fs-4 fw-bold" href="/" style="color:#1E3A8A;">SkillSwap</a>
     </div>
     <ul class="nav flex-column">
-      <li class="nav-item"><a class="nav-link active" href="{{ url_for('dashboard') }}" onclick="showSection('stream')">Home</a></li>
+      <li class="nav-item"><a class="nav-link active" href="{{ url_for('dashboard.home') }}" onclick="showSection('stream')">Home</a></li>
       <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('info')">Your Info</a></li>
       <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('requests')">Swap Requests</a></li>
       <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('discuss-requests')">Discuss Requests</a></li>
-      <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Log Out</a></li>
+      <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Log Out</a></li>
     </ul>
   </nav>
   <div class="content">
@@ -433,7 +433,7 @@
                     Your Skill: <strong>{{ request.recipient_skill.skill_name.name if request.recipient_skill and request.recipient_skill.skill_name else "N/A" }}</strong>
                   </p>
                   <div class="flex-row">
-                      <a href="{{ url_for('view_discuss_request', request_id=request.id) }}" class="btn btn-primary mt-2">
+                      <a href="{{ url_for('accept_discuss_request', request_id=request.id) }}" class="btn btn-primary mt-2">
                         Accept Discuss Request
                       </a>
                       <button type="button" class="btn mt-2 btn-danger" 
@@ -515,7 +515,7 @@
                 </ul>
               </div>
             {% endif %}
-            <form action="{{ url_for('add_skill') }}" method="POST">
+            <form action="{{ url_for('skill.add_skill') }}" method="POST">
               {{ form.hidden_tag() }}
               <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
@@ -555,7 +555,7 @@
                 </ul>
               </div>
             {% endif %}
-            <form action="{{ url_for('make_swap') }}" method="POST" id="makeSwapForm">
+            <form action="{{ url_for('request.make_swap') }}" method="POST" id="makeSwapForm">
               {{ swap_form.hidden_tag() }}
               <div class="mb-3">
                 {{ swap_form.desired_skill_name.label(class="form-label") }}
