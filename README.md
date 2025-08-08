@@ -269,39 +269,7 @@ We welcome contributions! Here's how you can help:
 - 📅 Community features
 - 📅 Analytics dashboard
 
-## 🐛 Bug Reports
-
-If you find a bug, please create an issue with:
-- **Description** of the bug
-- **Steps to reproduce**
-- **Expected behavior**
-- **Screenshots** (if applicable)
-- **Environment** (OS, browser, etc.)
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Flask Community** - For the amazing web framework
-- **Bootstrap Team** - For the beautiful UI components
-- **SQLAlchemy Team** - For the powerful ORM
-- **All Contributors** - For making SkillSwap better
-
-## 📞 Contact
-
-- **Project Link**: [https://github.com/yourusername/skillswap](https://github.com/yourusername/skillswap)
-- **Issues**: [https://github.com/yourusername/skillswap/issues](https://github.com/yourusername/skillswap/issues)
-
----
-
-<div align="center">
-
-**Made with ❤️ for students everywhere**
-
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/skillswap?style=social)](https://github.com/yourusername/skillswap)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/skillswap?style=social)](https://github.com/yourusername/skillswap)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/skillswap)](https://github.com/yourusername/skillswap/issues)
-
-</div>
