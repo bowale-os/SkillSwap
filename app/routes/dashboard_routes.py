@@ -109,6 +109,13 @@ def dashboard():
         ).scalar_one_or_none()
         discuss_request_exists[swap_request.id] = existing_discuss is not None
 
+    # Get active conversations for the user
+    active_conversations = db.session.execute(
+        db.select(SwapConversation).filter(
+            (SwapConversation.sender_id == user_id) | (SwapConversation.recipient_id == user_id)
+        )
+    ).scalars().all()
+
     return render_template(
         'dashboard.html',
         form=form,
@@ -121,7 +128,8 @@ def dashboard():
         sent_discuss_requests=sent_discuss_requests or None,
         received_discuss_requests=received_discuss_requests or None,
         swap_request_exists=swap_request_exists,
-        discuss_request_exists=discuss_request_exists
+        discuss_request_exists=discuss_request_exists,
+        active_conversations=active_conversations
     )
 
 @dashboard_bp.route('/send_swap_request/<string:swap_id>', methods=['POST'])
@@ -219,23 +227,12 @@ def accept_discuss_request(request_id):
         
         # Accept the discuss request
         discuss_request.accept()
-        
-        # Create a swap conversation between the two users
-        swap_conversation = SwapConversation(
-            swap_id=discuss_request.swap_id,
-            sender_id=discuss_request.recipient_id,
-            recipient_id=discuss_request.sender_id
-        )
-        db.session.add(swap_conversation)
-        
-        # Link the discuss request to the conversation
-        discuss_request.swap_conversation_id = swap_conversation.id
-        
+    
         db.session.commit()
         
         flash("Discuss request accepted successfully! The swap is now in discussion.", "success")
         
-        return render_template('chat_interface.html', discuss_request=discuss_request, swap_conversation=swap_conversation)
+        return redirect(url_for('chat.chat', request_id=discuss_request.id))
         
     except Exception as e:
         db.session.rollback()

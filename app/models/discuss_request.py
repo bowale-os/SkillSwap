@@ -12,7 +12,6 @@ class DiscussRequest(Base):
     sender_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), nullable=False)
     recipient_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), nullable=False)
     swap_id: Mapped[str] = mapped_column(String, ForeignKey('swaps.id'), nullable=False)
-    swap_conversation_id: Mapped[str] = mapped_column(String, ForeignKey('swap_conversations.id'), nullable=True)
 
     sender_skill_id: Mapped[str] = mapped_column(String, ForeignKey('skills.id'), nullable=False)
     recipient_skill_id: Mapped[str] = mapped_column(String, ForeignKey('skills.id'), nullable=False)
@@ -26,11 +25,10 @@ class DiscussRequest(Base):
     swap: Mapped['Swap'] = relationship('Swap', foreign_keys=[swap_id], back_populates='discuss_requests')
     
     swap_conversation: Mapped['SwapConversation'] = relationship(
-        "SwapConversation",
-        back_populates="discuss_request",
-        uselist=False,
-        foreign_keys=[swap_conversation_id]
-    )
+    "SwapConversation",
+    back_populates="discuss_request",
+    uselist=False
+)
     
     sender_skill: Mapped['Skill'] = relationship('Skill', foreign_keys=[sender_skill_id])
     recipient_skill: Mapped['Skill'] = relationship('Skill', foreign_keys=[recipient_skill_id])

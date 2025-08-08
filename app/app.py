@@ -73,7 +73,7 @@ def create_app():
             if not exists:
                 new_category = Category(name=cat)
                 db.session.add(new_category)
-                print(f"  ✓ Added category: {cat}")
+                print(f" Added category: {cat}")
 
         print("Seeding Skill Names...")
         for skill in skill_name_data:
@@ -83,11 +83,11 @@ def create_app():
             if not exists:
                 new_skill = SkillName(name=skill)
                 db.session.add(new_skill)
-                print(f"  ✓ Added skill: {skill}")
+                print(f"  Added skill: {skill}")
 
         try:
             db.session.commit()
-            print("🎓 All set! Your campus swap board just got way more relevant")
+            print(" All set! Your campus swap board just got way more relevant")
         except Exception as e:
             db.session.rollback()
             print(f"Error during seeding: {e}")
