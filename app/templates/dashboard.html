@@ -31,6 +31,29 @@
       --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
     }
 
+    /* Dark mode variables */
+    [data-theme="dark"] {
+      --primary-color: #3B82F6;
+      --primary-hover: #2563EB;
+      --success-color: #10B981;
+      --success-hover: #059669;
+      --warning-color: #F59E0B;
+      --warning-hover: #D97706;
+      --danger-color: #EF4444;
+      --danger-hover: #DC2626;
+      --bg-color: #0F172A;
+      --sidebar-bg: #1E293B;
+      --card-bg: #334155;
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --border-color: #475569;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.2);
+      --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+      --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    }
+
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg-color);
@@ -354,6 +377,13 @@
       opacity: 1;
     }
 
+    /* Only show backdrop on mobile screens */
+    @media (min-width: 993px) {
+      .sidebar-backdrop {
+        display: none !important;
+      }
+    }
+
     /* Responsive Design */
     @media (max-width: 992px) {
       .sidebar {
@@ -466,8 +496,11 @@
   </nav>
   <div class="content">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="fs-2 fw-bold" style="color: #1E3A8A;">Welcome, {{ current_user.name.split()[0] }}!</h1>
+      <h1 class="fs-2 fw-bold" style="color: var(--text-primary);">Welcome, {{ current_user.name.split()[0] }}!</h1>
       <div class="d-flex gap-3">
+        <button class="btn btn-outline-secondary" id="darkModeToggle" title="Toggle Dark Mode">
+          <i class="bi bi-moon-fill" id="darkModeIcon"></i>
+        </button>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSkillModal">
           <i class="bi bi-plus-circle me-2"></i>
           Add New Skill
@@ -502,7 +535,7 @@
     {% endwith %}
     <div id="swap-toggle-section">
       <div class="mb-5" id="swap-stream-section">
-        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Swap Stream</h2>
+        <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Swap Stream</h2>
         {% if swaps %}
           <div class="row g-4">
             {% for swap in swaps %}
@@ -538,7 +571,7 @@
     </div>
     <div id="requests-toggle-section" style="display: none;">
       <div class="mb-5" id="sent-requests-section">
-        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Sent Swap Requests</h2>
+        <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Sent Swap Requests</h2>
         {% if sent_swap_requests %}
           <div class="row g-4">
             {% for request in sent_swap_requests %}
@@ -587,7 +620,7 @@
         {% endif %}
       </div>
       <div class="mb-5" id="received-requests-section">
-        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Received Swap Requests</h2>
+        <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Received Swap Requests</h2>
         {% if received_swap_requests %}
           <div class="row g-4">
             {% for request in received_swap_requests %}
@@ -679,7 +712,7 @@
 
     <div id="user-info-toggle-section" style="display: none;">
       <div class="mb-5" id="skills-section">
-        <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Your Skills</h2>
+        <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Your Skills</h2>
         <div class="row g-4">
           {% for skill in skills %}
             <div class="col-md-6 col-lg-4">
@@ -768,7 +801,7 @@
 
   <div id="conversations-toggle-section" style="display: none;">
     <div class="mb-5" id="active-conversations-section">
-      <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Active Conversations</h2>
+              <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Active Conversations</h2>
       {% if active_conversations %}
         <div class="row g-4">
           {% for conversation in active_conversations %}
@@ -812,7 +845,7 @@
   <div id="discuss-toggle-section" style="display: none;">
     <!-- Sent Discuss Requests -->
     <div class="mb-5" id="sent-discuss-section">
-      <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Sent Discuss Requests</h2>
+              <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Sent Discuss Requests</h2>
       {% if sent_discuss_requests %}
         <div class="row g-4">
           {% for request in sent_discuss_requests %}
@@ -868,7 +901,7 @@
 
     <!-- Received Discuss Requests -->
     <div class="mb-5" id="received-discuss-section">
-      <h2 class="fs-4 fw-bold mb-3" style="color: #1E3A8A;">Received Discuss Requests</h2>
+              <h2 class="fs-4 fw-bold mb-3" style="color: var(--text-primary);">Received Discuss Requests</h2>
       {% if received_discuss_requests %}
         <div class="row g-4">
           {% for request in received_discuss_requests %}
@@ -1125,6 +1158,9 @@
       if (window.innerWidth <= 992) {
         document.getElementById('sidebar').classList.remove('active');
         document.getElementById('sidebarBackdrop').classList.remove('active');
+      } else {
+        // On desktop, just close the sidebar without backdrop
+        document.getElementById('sidebar').classList.remove('active');
       }
     }
     function toggleSidebar() {
@@ -1132,7 +1168,11 @@
       const backdrop = document.getElementById('sidebarBackdrop');
       
       sidebar.classList.toggle('active');
-      backdrop.classList.toggle('active');
+      
+      // Only toggle backdrop on mobile screens (below 992px)
+      if (window.innerWidth <= 992) {
+        backdrop.classList.toggle('active');
+      }
     }
     document.addEventListener('DOMContentLoaded', function () {
       // Delete Swap Request Modal
@@ -1259,6 +1299,35 @@
       }
     });
 
+    // Dark mode functionality
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const darkModeIcon = document.getElementById('darkModeIcon');
+    
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateDarkModeIcon(currentTheme);
+    
+    // Toggle dark mode
+    darkModeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateDarkModeIcon(newTheme);
+    });
+    
+    function updateDarkModeIcon(theme) {
+      if (theme === 'dark') {
+        darkModeIcon.className = 'bi bi-sun-fill';
+        darkModeToggle.title = 'Switch to Light Mode';
+      } else {
+        darkModeIcon.className = 'bi bi-moon-fill';
+        darkModeToggle.title = 'Switch to Dark Mode';
+      }
+    }
+    
     // Function to handle discuss request button state change
     function handleDiscussRequest(button, event) {
       // Prevent the default link behavior

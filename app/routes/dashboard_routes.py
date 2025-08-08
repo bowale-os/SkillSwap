@@ -109,10 +109,12 @@ def dashboard():
         ).scalar_one_or_none()
         discuss_request_exists[swap_request.id] = existing_discuss is not None
 
-    # Get active conversations for the user
+    # Get active conversations for the user (excluding completed swaps and non-accepted discuss requests)
     active_conversations = db.session.execute(
-        db.select(SwapConversation).filter(
-            (SwapConversation.sender_id == user_id) | (SwapConversation.recipient_id == user_id)
+        db.select(SwapConversation).join(Swap).join(DiscussRequest).filter(
+            (SwapConversation.sender_id == user_id) | (SwapConversation.recipient_id == user_id),
+            Swap.status != SwapStatus.completed,
+            DiscussRequest.status == RequestStatus.accepted
         )
     ).scalars().all()
 

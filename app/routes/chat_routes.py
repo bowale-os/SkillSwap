@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, jsonify
-from app.models import db, User, DiscussRequest, SwapRequest, SwapConversation, SwapMessage, MessageType, SwapStatus, Swap
+from app.models import db, User, DiscussRequest, SwapRequest, SwapConversation, SwapMessage, MessageType, SwapStatus, Swap, RequestStatus
 from datetime import datetime, timezone
 
 chat_bp = Blueprint('chat', __name__)
@@ -100,6 +100,14 @@ def accept_swap(conversation_id):
             swap = db.session.get(Swap, conversation.swap_id)
             if swap:
                 swap.status = SwapStatus.completed
+                
+                # Update related swap requests to completed status
+                related_swap_requests = db.session.execute(
+                    db.select(SwapRequest).filter_by(swap_id=swap.id)
+                ).scalars().all()
+                
+                for swap_request in related_swap_requests:
+                    swap_request.status = RequestStatus.accepted  # Mark as accepted since swap is completed
         
         db.session.commit()
 
