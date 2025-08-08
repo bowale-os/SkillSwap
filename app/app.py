@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_socketio import SocketIO
-from models import db, Category, SkillName
-from routes import register_routes
-from sockets import socketio
+from .models import db, Category, SkillName
+from .routes import register_routes
+from .sockets import socketio
 
 # 🎓 University Life Categories (expanded)
 category_data = [
