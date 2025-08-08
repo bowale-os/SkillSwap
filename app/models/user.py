@@ -24,7 +24,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=generate_uuid)
     name: Mapped[str] = mapped_column(String(60), nullable=False)
     email: Mapped[str] = mapped_column(String(60), unique=True, nullable=False, index=True)
-    password: Mapped[str] = mapped_column(String(30), nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # relationships
