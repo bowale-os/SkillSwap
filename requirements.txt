@@ -33,7 +33,7 @@ gunicorn==21.2.0
 # Optional: Database Drivers (uncomment based on your database choice)
 # For SQLite (included with Python)
 # For PostgreSQL
-psycopg2-binary==2.9.9
+psycopg[binary]
 # For MySQL
 # PyMySQL==1.1.0
 # For SQL Server
