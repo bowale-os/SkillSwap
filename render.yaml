@@ -11,12 +11,12 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
-      - key: DATABASE_URL
+      - key: DATABASE_URI
         fromDatabase:
-          name: skillswap-db
+          name: skillswapdb
           property: connectionString
 
 databases:
-  - name: skillswap-db
-    databaseName: skillswap
-    user: skillswap_user
+  - name: skillswapdb
+    databaseName: skillswapdb
+    user: daniel
