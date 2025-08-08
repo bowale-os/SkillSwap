@@ -27,10 +27,13 @@ python-dateutil==2.8.2
 # Security
 cryptography==41.0.8
 
+# Production Server
+gunicorn==21.2.0
+
 # Optional: Database Drivers (uncomment based on your database choice)
 # For SQLite (included with Python)
 # For PostgreSQL
-# psycopg2-binary==2.9.9
+psycopg2-binary==2.9.9
 # For MySQL
 # PyMySQL==1.1.0
 # For SQL Server
